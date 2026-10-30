@@ -2093,67 +2093,15 @@
       ) {
         console.warn(
           'DUPLICATE ROUTE REGISTRATION detected for: ' +
-            CHL.duplicateRoutes.join(
-              ', '
-            )
+            CHL.duplicateRoutes.join(', ')
         );
       }
 
-      if (sb) {
-        try {
-          CHL.onAuthStateChange(
-            function () {
-              CHL.refreshAuth()
-                .then(
-                  function () {
-                    if (
-                      CHL.StyleSwitcher &&
-                      typeof CHL.StyleSwitcher.onAuthChanged === 'function'
-                    ) {
-                      try {
-                        CHL.StyleSwitcher.onAuthChanged();
-                      } catch (_) {}
-                    }
-                    CHL.render();
-                  }
-                )
-                .catch(
-                  function () {
-                    CHL.render();
-                  }
-                );
-            }
-          );
-        } catch (_) {}
-
-        try {
-          await CHL.refreshAuth();
-          if (
-            CHL.StyleSwitcher &&
-            typeof CHL.StyleSwitcher.onAuthChanged === 'function'
-          ) {
-            try {
-              await CHL.StyleSwitcher.onAuthChanged();
-            } catch (_) {}
-          }
-        } catch (_) {}
-
-        CHL.verifyConnection()
-          .catch(
-            function () {}
-          );
-      }
-
-      if (
-        !CHL._hashChangeInstalled
-      ) {
-        CHL._hashChangeInstalled =
-          true;
-
-        window.addEventListener(
-          'hashchange',
-          CHL.render
-        );
+      // Register navigation before the first render. The first screen must
+      // never wait for Supabase network/session restoration to finish.
+      if (!CHL._hashChangeInstalled) {
+        CHL._hashChangeInstalled = true;
+        window.addEventListener('hashchange', CHL.render);
       }
 
       try {
@@ -2161,10 +2109,47 @@
       } catch (err) {
         CHL.renderRecoverableError(
           qs('#outlet'),
-          CHL.current &&
-            CHL.current.base,
+          CHL.current && CHL.current.base,
           err
         );
+      }
+
+      if (sb) {
+        try {
+          CHL.onAuthStateChange(function () {
+            CHL.refreshAuth()
+              .then(async function () {
+                if (
+                  CHL.StyleSwitcher &&
+                  typeof CHL.StyleSwitcher.onAuthChanged === 'function'
+                ) {
+                  try { await CHL.StyleSwitcher.onAuthChanged(); } catch (_) {}
+                }
+                await CHL.render();
+              })
+              .catch(function () { CHL.render(); });
+          });
+        } catch (_) {}
+
+        // Restore the session and profile in the background. A slow Supabase
+        // request must not leave the user staring at the initial spinner.
+        Promise.resolve().then(async function () {
+          try {
+            await CHL.refreshAuth();
+            if (
+              CHL.StyleSwitcher &&
+              typeof CHL.StyleSwitcher.onAuthChanged === 'function'
+            ) {
+              try { await CHL.StyleSwitcher.onAuthChanged(); } catch (_) {}
+            }
+            await CHL.render();
+          } catch (err) {
+            if (window.console) console.warn('[CHL auth bootstrap]', err);
+            try { await CHL.render(); } catch (_) {}
+          }
+        });
+
+        CHL.verifyConnection().catch(function () {});
       }
     };
 })();
