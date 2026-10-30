@@ -1,0 +1,601 @@
+{
+  "version": 1,
+  "eligibleSpendingDefinition": "Net settled coin spend that qualified as gift spend; remove refunded, reversed, fraudulent, or chargeback-related eligible spend according to the accounting policy. Coin top-ups alone do not confer gifter XP.",
+  "resetPolicy": "Lifetime eligible spend. Level does not reset monthly. Monthly rankings are a separate period ledger.",
+  "categories": [
+    {
+      "id": "spark",
+      "name": "Spark",
+      "fromLevel": 1,
+      "toLevel": 10,
+      "material": "opalescent"
+    },
+    {
+      "id": "bronze",
+      "name": "Bronze",
+      "fromLevel": 11,
+      "toLevel": 20,
+      "material": "bronze"
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "fromLevel": 21,
+      "toLevel": 30,
+      "material": "silver"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "fromLevel": 31,
+      "toLevel": 40,
+      "material": "gold"
+    },
+    {
+      "id": "cosmic",
+      "name": "Cosmic",
+      "fromLevel": 41,
+      "toLevel": 50,
+      "material": "cosmic"
+    }
+  ],
+  "levelZero": {
+    "level": 0,
+    "name": "Newcomer",
+    "badgeId": null,
+    "eligibleCoinsSpent": 0
+  },
+  "levels": [
+    {
+      "id": "gifter-level-01",
+      "level": 1,
+      "name": "First Spark",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 15042,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-02",
+      "level": 2,
+      "name": "Bright Giver",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 71554,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-03",
+      "level": 3,
+      "name": "Kindness Trace",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 178172,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-04",
+      "level": 4,
+      "name": "Glow Keeper",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 340370,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-05",
+      "level": 5,
+      "name": "Warm Signal",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 562341,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-06",
+      "level": 6,
+      "name": "Joy Bringer",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 847535,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-07",
+      "level": 7,
+      "name": "Shimmer Friend",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 1198914,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-08",
+      "level": 8,
+      "name": "Radiant Heart",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 1619086,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-09",
+      "level": 9,
+      "name": "Lucky Light",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 2110392,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-10",
+      "level": 10,
+      "name": "Spark Champion",
+      "category": "spark",
+      "categoryName": "Spark",
+      "minEligibleCoinsSpent": 2674961,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "spark"
+    },
+    {
+      "id": "gifter-level-11",
+      "level": 11,
+      "name": "Bronze Current",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 3314751,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-12",
+      "level": 12,
+      "name": "Copper Pulse",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 4031580,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-13",
+      "level": 13,
+      "name": "Kindling Star",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 4827141,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-14",
+      "level": 14,
+      "name": "Amber Beacon",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 5703028,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-15",
+      "level": 15,
+      "name": "Bronze Bloom",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 6660745,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-16",
+      "level": 16,
+      "name": "Giver Guardian",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 7701715,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-17",
+      "level": 17,
+      "name": "Steady Flame",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 8827293,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-18",
+      "level": 18,
+      "name": "Golden Edge",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 10038772,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-19",
+      "level": 19,
+      "name": "Bronze Radiance",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 11337390,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-20",
+      "level": 20,
+      "name": "Bronze Vanguard",
+      "category": "bronze",
+      "categoryName": "Bronze",
+      "minEligibleCoinsSpent": 12724331,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "bronze"
+    },
+    {
+      "id": "gifter-level-21",
+      "level": 21,
+      "name": "Silver Wave",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 14200737,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-22",
+      "level": 22,
+      "name": "Moonlit Giver",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 15767706,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-23",
+      "level": 23,
+      "name": "Cool Radiance",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 17426297,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-24",
+      "level": 24,
+      "name": "Silver Crest",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 19177535,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-25",
+      "level": 25,
+      "name": "Prism Keeper",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 21022410,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-26",
+      "level": 26,
+      "name": "Clear Horizon",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 22961884,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-27",
+      "level": 27,
+      "name": "Silver Sentinel",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 24996888,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-28",
+      "level": 28,
+      "name": "Lunar Halo",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 27128330,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-29",
+      "level": 29,
+      "name": "Crystal Current",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 29357088,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-30",
+      "level": 30,
+      "name": "Silver Champion",
+      "category": "silver",
+      "categoryName": "Silver",
+      "minEligibleCoinsSpent": 31684022,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "silver"
+    },
+    {
+      "id": "gifter-level-31",
+      "level": 31,
+      "name": "Gold Horizon",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 34109967,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-32",
+      "level": 32,
+      "name": "Sunfire Heart",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 36635737,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-33",
+      "level": 33,
+      "name": "Gold Virtuoso",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 39262129,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-34",
+      "level": 34,
+      "name": "Solar Guardian",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 41989920,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-35",
+      "level": 35,
+      "name": "Gilded Aura",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 44819869,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-36",
+      "level": 36,
+      "name": "Golden Comet",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 47752720,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-37",
+      "level": 37,
+      "name": "Royal Radiance",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 50789199,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-38",
+      "level": 38,
+      "name": "Crown of Light",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 53930020,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-39",
+      "level": 39,
+      "name": "Gold Luminary",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 57175879,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-40",
+      "level": 40,
+      "name": "Gold Champion",
+      "category": "gold",
+      "categoryName": "Gold",
+      "minEligibleCoinsSpent": 60527462,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "gold"
+    },
+    {
+      "id": "gifter-level-41",
+      "level": 41,
+      "name": "Cosmic Drift",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 63985441,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-42",
+      "level": 42,
+      "name": "Nebula Heart",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 67550472,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-43",
+      "level": 43,
+      "name": "Stellar Patron",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 71223205,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-44",
+      "level": 44,
+      "name": "Galaxy Keeper",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 75004274,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-45",
+      "level": 45,
+      "name": "Astral Beacon",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 78894303,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-46",
+      "level": 46,
+      "name": "Supernova Spirit",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 82893907,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-47",
+      "level": 47,
+      "name": "Cosmic Vanguard",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 87003689,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-48",
+      "level": 48,
+      "name": "Celestial Crown",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 91224244,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-49",
+      "level": 49,
+      "name": "Universe Weaver",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 95556155,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    },
+    {
+      "id": "gifter-level-50",
+      "level": 50,
+      "name": "Eternal Cosmos",
+      "category": "cosmic",
+      "categoryName": "Cosmic",
+      "minEligibleCoinsSpent": 100000000,
+      "badgeAsset": null,
+      "rulesVersion": 1,
+      "badgeStyle": "cosmic"
+    }
+  ],
+  "sourceNote": "Adapted from the ZOVARA gifter progression specification for Creator Hub Live. Badge artwork is rendered by CHL's own badge system; no ZOVARA branding or external runtime dependency is required."
+}
