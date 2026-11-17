@@ -1333,8 +1333,8 @@ html[data-chl-theme="light"] .skeleton { background: linear-gradient(90deg, #e2e
 html[data-chl-contrast="high"] .note { background: var(--card); color: var(--txt); }
 
 
-/* LIVE guest-seat dock: keep the host as the main stage and layer compact guest
-   seats over the lower host ribbon. Scoped to this LIVE room renderer only. */
+/* LIVE Fluid Grid guest-seat dock: keep the host as the main stage and place
+   guest seats above the host ribbon and the fixed mobile tab ribbon. */
 .live-stage.live-guest-seat-layout {
   isolation: isolate;
 }
@@ -1619,5 +1619,13 @@ html[data-chl-contrast="high"] .note { background: var(--card); color: var(--txt
 @media (max-width: 440px) {
   .live-stage.live-guest-seat-layout .live-guest-seat-rail {
     bottom: 64px;
+  }
+}
+
+/* Keep every responsive LIVE guest-seat rail clear of the fixed bottom tab ribbon.
+   The mobile tab bar is at least 60px tall; retain an 8px visual gap and safe area. */
+@media (max-width: 860px) {
+  .live-stage.live-guest-seat-layout .live-guest-seat-rail {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   }
 }
