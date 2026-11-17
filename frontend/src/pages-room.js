@@ -1118,29 +1118,62 @@
           var guestPermissions = el('div', { class: 'live-guest-permission-controls', role: 'group', 'aria-label': 'Guest publishing permissions' });
           var savedMic = guest.mic_on !== false;
           var savedCamera = guest.cam_on !== false;
-          var micPermissionLabel = el('label', { class: 'live-guest-permission-toggle' });
-          var micPermission = el('input', { type: 'checkbox', checked: savedMic, 'aria-label': 'Allow guest microphone' });
-          micPermissionLabel.appendChild(micPermission);
-          micPermissionLabel.appendChild(el('span', { text: 'Microphone' }));
-          guestPermissions.appendChild(micPermissionLabel);
+          var permissionSaving = false;
 
-          var cameraPermission = null;
-          if (currentMediaMode === 'video') {
-            var cameraPermissionLabel = el('label', { class: 'live-guest-permission-toggle' });
-            cameraPermission = el('input', { type: 'checkbox', checked: savedCamera, 'aria-label': 'Allow guest camera' });
-            cameraPermissionLabel.appendChild(cameraPermission);
-            cameraPermissionLabel.appendChild(el('span', { text: 'Camera' }));
-            guestPermissions.appendChild(cameraPermissionLabel);
+          function createGuestPermissionSwitch(label, initial, mediaName) {
+            var enabled = !!initial;
+            var button = el('button', {
+              class: 'live-guest-permission-toggle',
+              type: 'button',
+              role: 'switch',
+              'aria-checked': enabled ? 'true' : 'false',
+              'aria-label': 'Allow guest ' + mediaName
+            });
+            var name = el('span', { class: 'live-guest-permission-name', text: label });
+            var track = el('span', { class: 'live-guest-permission-track', 'aria-hidden': 'true' });
+            track.appendChild(el('span', { class: 'live-guest-permission-thumb' }));
+            var state = el('span', { class: 'live-guest-permission-state', text: enabled ? 'ON' : 'OFF' });
+            button.appendChild(name);
+            button.appendChild(track);
+            button.appendChild(state);
+
+            function setEnabled(nextValue) {
+              enabled = !!nextValue;
+              button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+              button.classList.toggle('is-on', enabled);
+              state.textContent = enabled ? 'ON' : 'OFF';
+              button.setAttribute('title', label + ' ' + (enabled ? 'on' : 'off'));
+            }
+
+            button.addEventListener('click', function () {
+              if (permissionSaving || button.disabled) return;
+              setEnabled(!enabled);
+              saveGuestPermissions();
+            });
+
+            setEnabled(enabled);
+            return {
+              element: button,
+              isEnabled: function () { return enabled; },
+              setEnabled: setEnabled,
+              setDisabled: function (disabled) { button.disabled = !!disabled; }
+            };
           }
 
-          var permissionSaving = false;
+          var micPermission = createGuestPermissionSwitch('Microphone', savedMic, 'microphone');
+          var cameraPermission = currentMediaMode === 'video'
+            ? createGuestPermissionSwitch('Camera', savedCamera, 'camera')
+            : null;
+          guestPermissions.appendChild(micPermission.element);
+          if (cameraPermission) guestPermissions.appendChild(cameraPermission.element);
+
           async function saveGuestPermissions() {
             if (permissionSaving) return;
             permissionSaving = true;
-            var nextMic = !!micPermission.checked;
-            var nextCamera = cameraPermission ? !!cameraPermission.checked : savedCamera;
-            micPermission.disabled = true;
-            if (cameraPermission) cameraPermission.disabled = true;
+            var nextMic = micPermission.isEnabled();
+            var nextCamera = cameraPermission ? cameraPermission.isEnabled() : savedCamera;
+            micPermission.setDisabled(true);
+            if (cameraPermission) cameraPermission.setDisabled(true);
             try {
               var saved = await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/permissions', {
                 method: 'POST',
@@ -1151,17 +1184,15 @@
               CHL.toast('Guest permissions saved.');
               if (saved && saved.publishPermissionUpdated === false) CHL.toast('Saved. The new permissions will apply when this guest reconnects.');
             } catch (error) {
-              micPermission.checked = savedMic;
-              if (cameraPermission) cameraPermission.checked = savedCamera;
+              micPermission.setEnabled(savedMic);
+              if (cameraPermission) cameraPermission.setEnabled(savedCamera);
               CHL.toast(error.message || 'Could not update guest permissions.');
             } finally {
               permissionSaving = false;
-              micPermission.disabled = false;
-              if (cameraPermission) cameraPermission.disabled = false;
+              micPermission.setDisabled(false);
+              if (cameraPermission) cameraPermission.setDisabled(false);
             }
           }
-          micPermission.addEventListener('change', saveGuestPermissions);
-          if (cameraPermission) cameraPermission.addEventListener('change', saveGuestPermissions);
           row.appendChild(guestPermissions);
           row.appendChild(el('button', { class: 'btn danger', type: 'button', text: 'Remove', onclick: async function () { try { await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/remove', { method: 'POST', body: { userId: guest.user_id } }); CHL.toast('Guest removed from stage.'); refreshGuestQueue(roomId, container, host, guestButton, guestStatus); } catch (e) { CHL.toast(e.message || 'Could not remove guest.'); } } }));
         }
