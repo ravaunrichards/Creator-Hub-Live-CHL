@@ -360,6 +360,16 @@ async function liveGuestSettingsForHost(client, hostId) {
   return { guestPermissions, maxGuests };
 }
 
+function liveGuestPublishSources(mediaMode, micEnabled, cameraEnabled) {
+  const mode = String(mediaMode || "video");
+  if (mode === "audio") return micEnabled !== false ? [2] : [];
+  if (mode === "screen") return [];
+  const sources = [];
+  if (cameraEnabled !== false) sources.push(1);
+  if (micEnabled !== false) sources.push(2);
+  return sources;
+}
+
 function liveGuestParts(pathname) {
   const match = pathname.match(/^\/api\/live\/rooms\/([^/]+)\/guests(?:\/([^/]+)(?:\/([^/]+))?)?\/?$/);
   if (!match) return null;
@@ -836,6 +846,8 @@ const server = http.createServer(async (req, res) => {
       let roomName = null;
       let canPublish = false;
       let isHost = false;
+      let micAllowed = true;
+      let cameraAllowed = true;
       let mediaMode = "video";
       let liveRoom = null;
       const roomId = body.roomId ? String(body.roomId).trim() : null;
@@ -849,10 +861,12 @@ const server = http.createServer(async (req, res) => {
         canPublish = isHost;
         if (!canPublish) {
           const { data: guest, error: guestError } = await client
-            .from("live_guests").select("status")
+            .from("live_guests").select("status,mic_on,cam_on")
             .eq("live_id", room.id).eq("user_id", user.id).maybeSingle();
           if (guestError) throw guestError;
           canPublish = !!guest && guest.status === "accepted";
+          micAllowed = canPublish && guest.mic_on !== false;
+          cameraAllowed = canPublish && guest.cam_on !== false;
         }
       } else if (body.roomName && String(body.roomName).trim()) {
         roomName = String(body.roomName).trim();
@@ -870,16 +884,21 @@ const server = http.createServer(async (req, res) => {
         canPublish = isHost;
         if (!canPublish) {
           const { data: guest, error: guestError } = await client
-            .from("live_guests").select("status")
+            .from("live_guests").select("status,mic_on,cam_on")
             .eq("live_id", room.id).eq("user_id", user.id).maybeSingle();
           if (guestError) throw guestError;
           canPublish = !!guest && guest.status === "accepted";
+          micAllowed = canPublish && guest.mic_on !== false;
+          cameraAllowed = canPublish && guest.cam_on !== false;
         }
       } else {
         throw fail(400, "INVALID_ROOM", "A valid LIVE room is required.");
       }
       await assertLiveRoomAccess(client, liveRoom, user);
       if (mediaMode === "screen" && !isHost) canPublish = false;
+      if (mediaMode !== "screen") {
+        canPublish = canPublish && (mediaMode === "audio" ? micAllowed : (micAllowed || cameraAllowed));
+      }
 
       const { data: profile, error: profileError } = await client.from("profiles")
         .select("username,display_name").eq("id", user.id).maybeSingle();
@@ -892,6 +911,8 @@ const server = http.createServer(async (req, res) => {
         participantName,
         mediaMode,
         isHost,
+        micAllowed,
+        cameraAllowed,
         ttlSeconds: body.ttlSeconds,
       });
       return ok(res, {
@@ -1027,10 +1048,12 @@ const server = http.createServer(async (req, res) => {
         if (!data) throw fail(404, "GUEST_INVITATION_NOT_FOUND", "There is no pending invitation for your account in this LIVE room.");
         let publishPermissionUpdated = false;
         try {
-          const guestSources = room.media_mode === "audio" ? [2] : [1, 2];
-          await liveKitRoomService().updateParticipant(room.room_name, String(user.id), { permission: { canPublish: true, canSubscribe: true, canPublishData: true, canPublishSources: guestSources } });
+          const guestSources = liveGuestPublishSources(room.media_mode, data.mic_on, data.cam_on);
+          await liveKitRoomService().updateParticipant(room.room_name, String(user.id), {
+            permission: { canPublish: guestSources.length > 0, canSubscribe: true, canPublishData: true, canPublishSources: guestSources }
+          });
           publishPermissionUpdated = true;
-        } catch (e) { console.info("[LIVE guest] invitation accepted before participant connected; next token will grant publishing:", e && e.message); }
+        } catch (e) { console.info("[LIVE guest] invitation accepted before participant connected; next token will grant saved permissions:", e && e.message); }
         return ok(res, { guest: data, publishPermissionUpdated });
       }
 
@@ -1055,9 +1078,9 @@ const server = http.createServer(async (req, res) => {
         // Update an already connected viewer in-place; never disconnect the room.
         let publishPermissionUpdated = false;
         try {
-          const guestSources = room.media_mode === "audio" ? [2] : [1, 2];
+          const guestSources = liveGuestPublishSources(room.media_mode, data.mic_on, data.cam_on);
           await liveKitRoomService().updateParticipant(room.room_name, targetId, {
-            permission: { canPublish: true, canSubscribe: true, canPublishData: true, canPublishSources: guestSources }
+            permission: { canPublish: guestSources.length > 0, canSubscribe: true, canPublishData: true, canPublishSources: guestSources }
           });
           publishPermissionUpdated = true;
         } catch (e) {
@@ -1078,6 +1101,53 @@ const server = http.createServer(async (req, res) => {
         if (error) throw error;
         if (!data) throw fail(404, "GUEST_REQUEST_NOT_FOUND", "No pending guest request was found.");
         return ok(res, { guest: data });
+      }
+
+      if (guestParts.action === "permissions" && method === "POST") {
+        if (!hostOwnsRoom) throw fail(403, "FORBIDDEN", "Only the host can change guest publishing permissions.");
+        if (room.media_mode === "screen") throw fail(409, "SCREEN_LIVE_HAS_NO_GUEST_STAGE", "This screen-sharing broadcast has no guest stage.");
+        const body = await readJson(req);
+        const targetId = String(body.userId || "").trim();
+        if (!targetId || targetId === String(room.host_id)) throw fail(400, "INVALID_GUEST", "A valid guest user ID is required.");
+        if (typeof body.micEnabled !== "boolean" || typeof body.cameraEnabled !== "boolean") {
+          throw fail(400, "INVALID_GUEST_PERMISSIONS", "Microphone and camera permissions must be enabled or disabled explicitly.");
+        }
+        const { data: existingGuest, error: existingGuestError } = await client.from("live_guests")
+          .select("id,user_id,status,mic_on,cam_on").eq("live_id", room.id).eq("user_id", targetId).eq("status", "accepted").maybeSingle();
+        if (existingGuestError) throw existingGuestError;
+        if (!existingGuest) throw fail(404, "GUEST_NOT_FOUND", "Only an accepted guest can have stage permissions changed.");
+        const { data, error } = await client.from("live_guests")
+          .update({ mic_on: body.micEnabled, cam_on: body.cameraEnabled })
+          .eq("live_id", room.id).eq("user_id", targetId).eq("status", "accepted")
+          .select("id,live_id,user_id,status,slot,mic_on,cam_on,pinned").maybeSingle();
+        if (error) throw error;
+        if (!data) throw fail(409, "GUEST_STATE_CHANGED", "The guest stage state changed before permissions could be saved.");
+
+        let publishPermissionUpdated = false;
+        const guestSources = liveGuestPublishSources(room.media_mode, data.mic_on, data.cam_on);
+        try {
+          await liveKitRoomService().updateParticipant(room.room_name, targetId, {
+            permission: {
+              canPublish: guestSources.length > 0,
+              canSubscribe: true,
+              canPublishData: true,
+              canPublishSources: guestSources
+            }
+          });
+          publishPermissionUpdated = true;
+        } catch (e) {
+          const message = String(e && e.message || e || "");
+          if (!/participant.*not.?found|not.?found.*participant|participant.*does not exist|404/i.test(message)) {
+            const rollback = await client.from("live_guests")
+              .update({ mic_on: existingGuest.mic_on, cam_on: existingGuest.cam_on })
+              .eq("live_id", room.id).eq("user_id", targetId).eq("status", "accepted");
+            if (rollback.error) console.error("[LIVE guest] permission rollback failed:", rollback.error.message || rollback.error);
+            throw fail(503, "GUEST_PERMISSION_UPDATE_FAILED", "Could not apply the guest permission change. The previous settings were restored where possible.", { details: message });
+          }
+          // A disconnected accepted guest receives these saved permissions in their next LiveKit token.
+          console.info("[LIVE guest] permissions saved for the guest's next connection:", message);
+        }
+        return ok(res, { guest: data, permissionsSaved: true, publishPermissionUpdated });
       }
 
       if (guestParts.action === "mute-track" && method === "POST") {
@@ -1250,22 +1320,31 @@ const server = http.createServer(async (req, res) => {
         if (room.status === "ended")
           throw fail(409, "LIVE_ENDED", "This LIVE session has ended.");
         const isHost = String(room.host_id) === String(user.id);
-        let canPublish = isHost;
+        let isAcceptedGuest = false;
+        let micAllowed = isHost && room.media_mode !== "screen";
+        let cameraAllowed = isHost && room.media_mode === "video";
         if (!isHost) {
           const { data: guest, error: guestError } = await client
-            .from("live_guests").select("status")
+            .from("live_guests").select("status,mic_on,cam_on")
             .eq("live_id", room.id).eq("user_id", user.id).maybeSingle();
           if (guestError) throw guestError;
-          canPublish = !!guest && guest.status === "accepted";
+          isAcceptedGuest = !!guest && guest.status === "accepted";
+          micAllowed = isAcceptedGuest && guest.mic_on !== false && room.media_mode !== "screen";
+          cameraAllowed = isAcceptedGuest && guest.cam_on !== false && room.media_mode === "video";
         }
-        if (room.media_mode === "screen" && !isHost) canPublish = false;
+        const canPublishMicrophone = micAllowed && (room.media_mode === "video" || room.media_mode === "audio");
+        const canPublishCamera = cameraAllowed && room.media_mode === "video";
+        const canPublish = room.media_mode === "screen" ? isHost : (canPublishMicrophone || canPublishCamera);
         return ok(res, {
           joined: true,
           roomId: room.id,
           status: room.status,
           roomName: room.room_name,
           isHost,
+          isAcceptedGuest,
           canPublish,
+          canPublishMicrophone,
+          canPublishCamera,
         });
       }
 
