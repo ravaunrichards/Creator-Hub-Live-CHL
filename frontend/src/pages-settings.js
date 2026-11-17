@@ -93,18 +93,36 @@
         e.preventDefault();
         var v={privacy:s.privacy,notifications:s.notifications,live:{
           audience:f.elements.audience.value,
-          guest_permissions:f.elements.guest_permissions.value,
+          guest_permissions:f.elements.allow_guest_requests.checked ? 'allowed' : 'host_only',
           max_guests:Number(f.elements.max_guests.value)
         }};
         try{await saveSettings(v);}catch(err){CHL.toast(err.message||'Could not save settings.');}
       }});
       f.appendChild(selectField('Default audience','audience',['public','followers','private'],s.live.audience));
-      f.appendChild(selectField('Who can request the guest stage','guest_permissions',[
-        {value:'allowed',label:'Allow viewers to request to join'},
-        {value:'host_only',label:'Host-only: accept invited guests, close viewer requests'}
-      ],s.live.guest_permissions));
+      var guestRequestSwitch = el('label', { class: 'live-settings-guest-switch' });
+      var guestRequestInput = el('input', {
+        type: 'checkbox',
+        name: 'allow_guest_requests',
+        checked: s.live.guest_permissions !== 'host_only',
+        role: 'switch',
+        'aria-checked': s.live.guest_permissions !== 'host_only' ? 'true' : 'false',
+        'aria-label': 'Allow viewers to request a guest seat'
+      });
+      var guestRequestLabel = el('span', { class: 'live-settings-guest-switch-label', text: 'Allow viewers to request a guest seat' });
+      var guestRequestTrack = el('span', { class: 'live-settings-guest-switch-track', 'aria-hidden': 'true' });
+      guestRequestTrack.appendChild(el('span', { class: 'live-settings-guest-switch-thumb' }));
+      var guestRequestState = el('span', { class: 'live-settings-guest-switch-state', text: guestRequestInput.checked ? 'ON' : 'OFF' });
+      guestRequestInput.addEventListener('change', function () {
+        guestRequestInput.setAttribute('aria-checked', guestRequestInput.checked ? 'true' : 'false');
+        guestRequestState.textContent = guestRequestInput.checked ? 'ON' : 'OFF';
+      });
+      guestRequestSwitch.appendChild(guestRequestInput);
+      guestRequestSwitch.appendChild(guestRequestLabel);
+      guestRequestSwitch.appendChild(guestRequestTrack);
+      guestRequestSwitch.appendChild(guestRequestState);
+      f.appendChild(guestRequestSwitch);
       f.appendChild(selectField('Maximum accepted guests','max_guests',[0,1,2,3,4,5,6,7,8].map(function(n){return {value:String(n),label:n===0?'0 guests — host only':String(n)+' guest'+(n===1?'':'s')};}),String(Number.isInteger(Number(s.live.max_guests))?Number(s.live.max_guests):8)));
-      f.appendChild(el('p',{class:'sub',text:'The host can review requests, accept or reject viewers, invite a creator by username, mute their published audio, stop video, and remove a guest. The host remains on stage separately from the guest limit.'}));
+      f.appendChild(el('p',{class:'sub',text:'Turn viewer requests on or off here. For each accepted guest, use the Microphone and Camera switches in the LIVE guest queue to enable or disable their publishing permissions. The host remains on stage separately from the guest limit.'}));
       f.appendChild(el('button',{class:'btn primary',type:'submit'},'Save LIVE settings')); card.appendChild(f);
     }catch(e){card.innerHTML='';card.appendChild(el('div',{class:'note',text:e.message||'Could not load settings.'}));}
   });

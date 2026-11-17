@@ -13,6 +13,9 @@
   var currentRoomId = null;
   var isHost = false;
   var canPublishMedia = false;
+  var canPublishMicrophone = false;
+  var canPublishCamera = false;
+  var isAcceptedGuest = false;
   var currentMediaMode = 'video';
   var liveStarted = false;
   var chatPollTimer = null;
@@ -68,6 +71,9 @@
     roomHostId = null;
     isHost = false;
     canPublishMedia = false;
+    canPublishMicrophone = false;
+    canPublishCamera = false;
+    isAcceptedGuest = false;
     liveStarted = false;
 
     var roomHeading = el('div', { class: 'h1', text: 'LIVE' });
@@ -229,7 +235,7 @@
 
     var guestCard = el('section', { class: 'card live-guest-card', style: 'margin-top:14px;min-width:0' });
     guestCard.appendChild(el('div', { class: 'live-panel-heading', text: 'Guest stage' }));
-    var guestAction = el('button', { class: 'btn primary block', type: 'button', text: 'Request to Join', onclick: function () { requestGuest(roomId, guestAction, controls, leaveStageButton); } });
+    var guestAction = el('button', { class: 'btn primary block', type: 'button', text: 'Request to Join', onclick: function () { requestGuest(roomId, guestAction, controls, leaveStageButton, micButton, cameraButton, flipButton, zoomControls); } });
     var guestStatus = el('p', { class: 'sub', text: 'Ask the host to add you to the live guest boxes. Host approval is required.' });
     guestCard.appendChild(guestAction); guestCard.appendChild(guestStatus);
     var guestInviteForm = el('form', { class: 'row wrap', style: 'display:none;gap:8px;margin:8px 0;align-items:end' });
@@ -393,6 +399,9 @@
       isHost = !!CHL.user && !!roomHostId && String(CHL.user.id) === String(roomHostId);
       currentMediaMode = ['video', 'audio', 'screen'].indexOf(String(room.media_mode || 'video')) >= 0 ? String(room.media_mode || 'video') : 'video';
       canPublishMedia = isHost;
+      canPublishMicrophone = isHost && currentMediaMode !== 'screen';
+      canPublishCamera = isHost && currentMediaMode === 'video';
+      isAcceptedGuest = false;
       roomHeading.textContent = currentMediaMode === 'audio' ? 'Audio-Only LIVE' : currentMediaMode === 'screen' ? 'Screen-Sharing LIVE' : 'Video LIVE';
       roomSubtitle.textContent = currentMediaMode === 'audio' ? 'Voice room · camera is not requested' : currentMediaMode === 'screen' ? 'Screen broadcast · camera and microphone are not required' : 'Camera and microphone broadcast';
       stage.classList.toggle('live-audio-only-stage', currentMediaMode === 'audio');
@@ -423,13 +432,24 @@
 
       if (currentRoomId !== roomId) return;
 
-      /* Server publication permission is authoritative. */
-      if (joinResult && typeof joinResult.canPublish === 'boolean') {
-        canPublishMedia = joinResult.canPublish;
-      }
-      controls.style.display = canPublishMedia ? '' : 'none';
+      /* The backend controls guest camera and microphone publishing separately. */
+      isAcceptedGuest = !!(joinResult && joinResult.isAcceptedGuest);
+      canPublishMicrophone = joinResult && typeof joinResult.canPublishMicrophone === 'boolean'
+        ? joinResult.canPublishMicrophone
+        : (isHost && currentMediaMode !== 'screen');
+      canPublishCamera = joinResult && typeof joinResult.canPublishCamera === 'boolean'
+        ? joinResult.canPublishCamera
+        : (isHost && currentMediaMode === 'video');
+      canPublishMedia = currentMediaMode === 'screen'
+        ? !!(joinResult && joinResult.canPublish)
+        : (canPublishMicrophone || canPublishCamera);
+      controls.style.display = (isHost || isAcceptedGuest) ? '' : 'none';
+      micButton.disabled = !canPublishMicrophone;
+      cameraButton.disabled = !canPublishCamera;
+      flipButton.disabled = !canPublishCamera;
+      zoomControls.querySelectorAll('button').forEach(function (button) { button.disabled = !canPublishCamera; });
       endButton.style.display = isHost ? '' : 'none';
-      leaveStageButton.style.display = canPublishMedia && !isHost ? '' : 'none';
+      leaveStageButton.style.display = isAcceptedGuest && !isHost ? '' : 'none';
       screenStartButton.style.display = currentMediaMode === 'screen' && isHost ? '' : 'none';
       pollLaunch.disabled = !isHost;
       challengeStart.disabled = !isHost;
@@ -477,10 +497,10 @@
           if (canPublishMedia) {
             try {
               if (currentMediaMode === 'video') {
-                await CHL.publishCamera();
-                await CHL.publishMicrophone();
-              } else if (currentMediaMode === 'audio') {
-                await CHL.publishMicrophone();
+                if (canPublishCamera && !CHL.hasPublishedCamera()) await CHL.publishCamera();
+                if (canPublishMicrophone && !CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
+              } else if (currentMediaMode === 'audio' && canPublishMicrophone) {
+                if (!CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
               }
             } catch (e) {
               status.textContent = 'MEDIA PERMISSION FAILED';
@@ -495,7 +515,7 @@
             status.textContent = currentMediaMode === 'audio' ? 'LIVE · AUDIO ONLY' : 'LIVE · VIDEO';
             status.style.background = 'rgba(180,0,40,.85)';
           }
-          if (canPublishMedia && currentMediaMode !== 'screen') ensureParticipantTile(lkRoom && lkRoom.localParticipant, true);
+          if ((canPublishMedia || isAcceptedGuest) && currentMediaMode !== 'screen') ensureParticipantTile(lkRoom && lkRoom.localParticipant, true);
           if (lkRoom && lkRoom.localParticipant && lkRoom.localParticipant.trackPublications) {
             lkRoom.localParticipant.trackPublications.forEach(function (publication) {
               if (publication.track && (isCameraPublication(publication) || isScreenPublication(publication))) attachTrackToTile(publication.track, publication, lkRoom.localParticipant, true);
@@ -548,37 +568,55 @@
         },
         onParticipantPermissionsChanged: function (participant) {
           if (!participant) return;
-          if (isHost && String(participant.identity) !== String(CHL.user && CHL.user.id) && participant.permissions && participant.permissions.canPublish === false) {
-            removeParticipantTile(participant);
+          if (isHost && String(participant.identity) !== String(CHL.user && CHL.user.id)) {
+            if (participant.permissions && participant.permissions.canPublish === false) removeParticipantTile(participant);
             refreshGuestQueue(roomId, guestQueueContainer, true, guestAction, guestStatus);
             return;
           }
           if (!CHL.user || String(participant.identity) !== String(CHL.user.id)) return;
           CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/join', { method: 'POST' }).then(async function (result) {
-            canPublishMedia = !!(result && result.canPublish);
-            controls.style.display = canPublishMedia ? '' : 'none';
-            leaveStageButton.style.display = canPublishMedia && !isHost ? '' : 'none';
-            if (canPublishMedia) {
-              if (currentMediaMode === 'video') {
+            isAcceptedGuest = !!(result && result.isAcceptedGuest);
+            canPublishMicrophone = !!(result && result.canPublishMicrophone);
+            canPublishCamera = !!(result && result.canPublishCamera);
+            canPublishMedia = currentMediaMode === 'screen'
+              ? !!(result && result.canPublish)
+              : (canPublishMicrophone || canPublishCamera);
+            controls.style.display = (isHost || isAcceptedGuest) ? '' : 'none';
+            leaveStageButton.style.display = isAcceptedGuest && !isHost ? '' : 'none';
+            micButton.disabled = !canPublishMicrophone;
+            cameraButton.disabled = !canPublishCamera;
+            flipButton.disabled = !canPublishCamera;
+            zoomControls.querySelectorAll('button').forEach(function (button) { button.disabled = !canPublishCamera; });
+
+            if (currentMediaMode === 'video') {
+              if (canPublishCamera) {
                 if (!CHL.hasPublishedCamera()) await CHL.publishCamera();
-                if (!CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
-              } else if (currentMediaMode === 'audio') {
-                if (!CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
-              } else if (!isHost) {
-                canPublishMedia = false;
-                controls.style.display = 'none';
-                return;
-              } else {
-                return; // The host starts a screen track from the explicit screen-share button.
+              } else if (CHL.hasPublishedCamera()) {
+                await CHL.unpublishCamera();
               }
-              ensureParticipantTile(participant, true);
-              syncMediaButtons(); updateZoomButtons();
+              if (canPublishMicrophone) {
+                if (!CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
+              } else if (CHL.hasPublishedMicrophone()) {
+                await CHL.unpublishMicrophone();
+              }
+            } else if (currentMediaMode === 'audio') {
+              if (canPublishMicrophone) {
+                if (!CHL.hasPublishedMicrophone()) await CHL.publishMicrophone();
+              } else if (CHL.hasPublishedMicrophone()) {
+                await CHL.unpublishMicrophone();
+              }
+            } else if (!isHost) {
+              canPublishMedia = false;
+              controls.style.display = 'none';
+              return;
             } else {
-              stopEchoMonitor();
-              try { await CHL.unpublishCamera(); } catch (_) {}
-              try { await CHL.unpublishMicrophone(); } catch (_) {}
-              removeParticipantTile(participant);
+              return; // The host starts a screen track from the explicit screen-share button.
             }
+
+            if (canPublishMedia || isAcceptedGuest) ensureParticipantTile(participant, true);
+            else removeParticipantTile(participant);
+            if (!canPublishMicrophone) stopEchoMonitor();
+            syncMediaButtons(); updateZoomButtons();
           }).catch(function (error) { CHL.toast(error.message || 'Guest permission update failed.'); });
         },
         onParticipantDisconnected: function (participant) {
@@ -985,7 +1023,7 @@
     } catch (error) { console.warn('[Creator Hub LIVE] ignored invalid room event', error); }
   }
 
-  async function requestGuest(roomId, button, mediaControls, leaveStageControl) {
+  async function requestGuest(roomId, button, mediaControls, leaveStageControl, micPermissionButton, cameraPermissionButton, flipPermissionButton, zoomPermissionControls) {
     button.disabled = true;
     try {
       var base = '/api/live/rooms/' + encodeURIComponent(roomId) + '/guests';
@@ -996,11 +1034,18 @@
         // Existing viewers stay connected, but receive publisher controls only
         // after the backend confirms the accepted guest row.
         var grant = await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/join', { method: 'POST' });
+        isAcceptedGuest = !!(grant && grant.isAcceptedGuest);
+        canPublishMicrophone = !!(grant && grant.canPublishMicrophone);
+        canPublishCamera = !!(grant && grant.canPublishCamera);
         canPublishMedia = !!(grant && grant.canPublish);
-        if (mediaControls) mediaControls.style.display = canPublishMedia ? '' : 'none';
-        if (leaveStageControl) leaveStageControl.style.display = canPublishMedia && !isHost ? '' : 'none';
-        button.textContent = canPublishMedia ? 'You are on stage' : 'Invitation accepted';
-        CHL.toast(canPublishMedia ? 'Host invitation accepted. Stage controls are ready.' : 'Invitation accepted. The stage permission is refreshing.');
+        if (mediaControls) mediaControls.style.display = isAcceptedGuest ? '' : 'none';
+        if (leaveStageControl) leaveStageControl.style.display = isAcceptedGuest && !isHost ? '' : 'none';
+        if (micPermissionButton) micPermissionButton.disabled = !canPublishMicrophone;
+        if (cameraPermissionButton) cameraPermissionButton.disabled = !canPublishCamera;
+        if (flipPermissionButton) flipPermissionButton.disabled = !canPublishCamera;
+        if (zoomPermissionControls) zoomPermissionControls.querySelectorAll('button').forEach(function (control) { control.disabled = !canPublishCamera; });
+        button.textContent = isAcceptedGuest ? 'You are on stage' : 'Invitation accepted';
+        CHL.toast(canPublishMedia ? 'Host invitation accepted. Stage controls are ready.' : 'Invitation accepted. Waiting for the host to enable your media permissions.');
       } else {
         await CHL.authenticatedApiRequest(base + '/request', { method: 'POST', body: {} });
         button.textContent = 'Request pending'; CHL.toast('Guest request sent to the host.');
@@ -1069,7 +1114,88 @@
         if (guest.status === 'requested') {
           row.appendChild(el('button', { class: 'btn primary', type: 'button', text: 'Accept', onclick: async function () { try { await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/accept', { method: 'POST', body: { userId: guest.user_id } }); CHL.toast('Guest accepted.'); refreshGuestQueue(roomId, container, host, guestButton, guestStatus); } catch (e) { CHL.toast(e.message || 'Could not accept guest.'); } } }));
           row.appendChild(el('button', { class: 'btn', type: 'button', text: 'Reject', onclick: async function () { try { await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/reject', { method: 'POST', body: { userId: guest.user_id } }); refreshGuestQueue(roomId, container, host, guestButton, guestStatus); } catch (e) { CHL.toast(e.message || 'Could not reject guest.'); } } }));
-        } else if (guest.status === 'accepted') row.appendChild(el('button', { class: 'btn danger', type: 'button', text: 'Remove', onclick: async function () { try { await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/remove', { method: 'POST', body: { userId: guest.user_id } }); CHL.toast('Guest removed from stage.'); refreshGuestQueue(roomId, container, host, guestButton, guestStatus); } catch (e) { CHL.toast(e.message || 'Could not remove guest.'); } } }));
+        } else if (guest.status === 'accepted') {
+          var guestPermissions = el('div', { class: 'live-guest-permission-controls', role: 'group', 'aria-label': 'Guest publishing permissions' });
+          var savedMic = guest.mic_on !== false;
+          var savedCamera = guest.cam_on !== false;
+          var permissionSaving = false;
+
+          function createGuestPermissionSwitch(label, initial, mediaName) {
+            var enabled = !!initial;
+            var button = el('button', {
+              class: 'live-guest-permission-toggle',
+              type: 'button',
+              role: 'switch',
+              'aria-checked': enabled ? 'true' : 'false',
+              'aria-label': 'Allow guest ' + mediaName
+            });
+            var name = el('span', { class: 'live-guest-permission-name', text: label });
+            var track = el('span', { class: 'live-guest-permission-track', 'aria-hidden': 'true' });
+            track.appendChild(el('span', { class: 'live-guest-permission-thumb' }));
+            var state = el('span', { class: 'live-guest-permission-state', text: enabled ? 'ON' : 'OFF' });
+            button.appendChild(name);
+            button.appendChild(track);
+            button.appendChild(state);
+
+            function setEnabled(nextValue) {
+              enabled = !!nextValue;
+              button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+              button.classList.toggle('is-on', enabled);
+              state.textContent = enabled ? 'ON' : 'OFF';
+              button.setAttribute('title', label + ' ' + (enabled ? 'on' : 'off'));
+            }
+
+            button.addEventListener('click', function () {
+              if (permissionSaving || button.disabled) return;
+              setEnabled(!enabled);
+              saveGuestPermissions();
+            });
+
+            setEnabled(enabled);
+            return {
+              element: button,
+              isEnabled: function () { return enabled; },
+              setEnabled: setEnabled,
+              setDisabled: function (disabled) { button.disabled = !!disabled; }
+            };
+          }
+
+          var micPermission = createGuestPermissionSwitch('Microphone', savedMic, 'microphone');
+          var cameraPermission = currentMediaMode === 'video'
+            ? createGuestPermissionSwitch('Camera', savedCamera, 'camera')
+            : null;
+          guestPermissions.appendChild(micPermission.element);
+          if (cameraPermission) guestPermissions.appendChild(cameraPermission.element);
+
+          async function saveGuestPermissions() {
+            if (permissionSaving) return;
+            permissionSaving = true;
+            var nextMic = micPermission.isEnabled();
+            var nextCamera = cameraPermission ? cameraPermission.isEnabled() : savedCamera;
+            micPermission.setDisabled(true);
+            if (cameraPermission) cameraPermission.setDisabled(true);
+            try {
+              var saved = await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/permissions', {
+                method: 'POST',
+                body: { userId: guest.user_id, micEnabled: nextMic, cameraEnabled: nextCamera }
+              });
+              savedMic = nextMic;
+              savedCamera = nextCamera;
+              CHL.toast('Guest permissions saved.');
+              if (saved && saved.publishPermissionUpdated === false) CHL.toast('Saved. The new permissions will apply when this guest reconnects.');
+            } catch (error) {
+              micPermission.setEnabled(savedMic);
+              if (cameraPermission) cameraPermission.setEnabled(savedCamera);
+              CHL.toast(error.message || 'Could not update guest permissions.');
+            } finally {
+              permissionSaving = false;
+              micPermission.setDisabled(false);
+              if (cameraPermission) cameraPermission.setDisabled(false);
+            }
+          }
+          row.appendChild(guestPermissions);
+          row.appendChild(el('button', { class: 'btn danger', type: 'button', text: 'Remove', onclick: async function () { try { await CHL.authenticatedApiRequest('/api/live/rooms/' + encodeURIComponent(roomId) + '/guests/remove', { method: 'POST', body: { userId: guest.user_id } }); CHL.toast('Guest removed from stage.'); refreshGuestQueue(roomId, container, host, guestButton, guestStatus); } catch (e) { CHL.toast(e.message || 'Could not remove guest.'); } } }));
+        }
         else if (guest.status === 'invited') row.appendChild(el('span', { class:'sub', text:'Invitation sent' }));
         container.appendChild(row);
       });
