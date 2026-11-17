@@ -128,7 +128,7 @@
       text: 'CONNECTING'
     });
 
-    var stageGrid = el('div', { class: 'live-stage-grid', 'aria-label': 'LIVE participant stage' });
+    var stageGrid = el('div', { class: 'live-stage-grid chl-fluid-guest-stage', 'aria-label': 'LIVE participant stage' });
     liveStageGrid = stageGrid;
     stageGrid.appendChild(el('div', { class: 'live-stage-empty', text: 'Connecting to the LIVE stage…' }));
     stage.appendChild(stageGrid);
@@ -704,7 +704,8 @@
     var title = el('span', { class: 'live-participant-name', text: String(name).slice(0, 80) });
     var state = el('span', { class: 'live-participant-state', text: local ? 'YOU' : 'CONNECTED' });
     var footer = el('div', { class: 'live-participant-footer' }, [title, state]);
-    var tileElement = el('article', { class: 'live-participant-tile' + (local ? ' is-local' : ''), 'data-participant-id': key });
+    var hostRibbon = (!!isHost && !!local) || (!!roomHostId && !!participant && String(participant.identity || '') === String(roomHostId));
+    var tileElement = el('article', { class: 'live-participant-tile' + (local ? ' is-local' : '') + (hostRibbon ? ' is-host-ribbon' : ' is-guest-seat'), 'data-participant-id': key });
     media.appendChild(el('div', { class: 'live-camera-off', text: currentMediaMode === 'audio' ? '🎙 Voice stage' : currentMediaMode === 'screen' ? 'Screen preview' : (local ? 'Camera starting…' : 'Waiting for media…') }));
     tileElement.appendChild(media); tileElement.appendChild(footer);
     var tile = { key: key, participant: participant, local: !!local, element: tileElement, media: media, name: title, state: state, audio: [], videoSid: null, audioSid: null, mutedByHost: false };
