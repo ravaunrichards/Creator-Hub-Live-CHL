@@ -1626,6 +1626,6 @@ html[data-chl-contrast="high"] .note { background: var(--card); color: var(--txt
    video and audio LIVE rooms. Include ribbon height, safe area and a small gap. */
 @media (max-width: 860px) {
   .live-stage.live-guest-seat-layout:not(.live-screen-only-stage) .live-guest-seat-rail {
-    bottom: calc(124px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(164px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
