@@ -1187,6 +1187,10 @@ input, textarea, select {
 .live-guest-queue-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;padding:10px;border:1px solid var(--line,#292a3b);border-radius:12px;background:var(--card,#191926)}
 .live-guest-queue-name{font-weight:800;min-width:0;flex:1;overflow-wrap:anywhere}
 .live-guest-queue-status{font-size:11px;text-transform:capitalize;color:var(--mut,#aaa)}
+.live-guest-permission-controls{display:flex;align-items:center;gap:12px;flex:1 0 100%;min-width:0;padding:3px 2px}
+.live-guest-permission-toggle{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:5px 9px;border:1px solid var(--line,#35364b);border-radius:10px;background:rgba(127,127,160,.08);color:var(--txt,#f4f5fb);font-size:12px;font-weight:750;cursor:pointer}
+.live-guest-permission-toggle input{width:18px;height:18px;margin:0;accent-color:var(--brand,#846bff);cursor:pointer}
+.live-guest-permission-toggle input:disabled{cursor:wait;opacity:.6}
 @media(max-width:600px){.live-stage-grid{grid-template-columns:minmax(0,1fr);padding:4px;gap:8px}.live-participant-tile{min-height:180px}.live-participant-media{min-height:180px;aspect-ratio:4/3}.live-participant-video{min-height:180px;max-height:58vh}.live-stage-grid:has(.live-participant-tile:only-child) .live-participant-media{min-height:260px}.live-participant-host-controls .btn{min-height:40px}}
 .live-media-request-panel{border:1px solid rgba(139,117,255,.5);box-shadow:0 0 0 1px rgba(139,117,255,.12)}
 
