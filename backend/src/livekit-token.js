@@ -88,6 +88,8 @@ export async function createLiveKitToken({
   participantName = null,
   isHost = false,
   mediaMode = "video",
+  micAllowed = true,
+  cameraAllowed = true,
   ttlSeconds = 3600
 }) {
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -125,9 +127,9 @@ export async function createLiveKitToken({
   const mode = ['video', 'audio', 'screen'].includes(String(mediaMode))
     ? String(mediaMode)
     : 'video';
-  const publishSources = !canPublish ? [] : mode === 'audio' ? [2] : mode === 'screen'
+  const publishSources = !canPublish ? [] : mode === 'audio' ? (micAllowed ? [2] : []) : mode === 'screen'
     ? (isHost ? [3, 4] : [])
-    : [1, 2];
+    : [ ...(cameraAllowed ? [1] : []), ...(micAllowed ? [2] : []) ];
 
   token.addGrant({
     roomJoin: true,
