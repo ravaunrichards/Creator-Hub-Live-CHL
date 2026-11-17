@@ -1622,10 +1622,10 @@ html[data-chl-contrast="high"] .note { background: var(--card); color: var(--txt
   }
 }
 
-/* Keep every responsive LIVE guest-seat rail clear of the fixed bottom tab ribbon.
-   The mobile tab bar is at least 60px tall; retain an 8px visual gap and safe area. */
+/* Keep Fluid Grid guest seats fully above the fixed bottom tab ribbon in both
+   video and audio LIVE rooms. Include ribbon height, safe area and a small gap. */
 @media (max-width: 860px) {
-  .live-stage.live-guest-seat-layout .live-guest-seat-rail {
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  .live-stage.live-guest-seat-layout:not(.live-screen-only-stage) .live-guest-seat-rail {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
