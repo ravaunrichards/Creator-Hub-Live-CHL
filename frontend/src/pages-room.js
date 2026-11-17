@@ -25,6 +25,7 @@
   var lastReactionAt = 0;
   var giftEventsBySender = Object.create(null);
   var liveStageGrid = null;
+  var liveGuestSeatRail = null;
   var liveMicButton = null;
   var liveCameraButton = null;
   var liveZoomControls = null;
@@ -49,6 +50,7 @@
     clearChallengeTimer();
     if (pollRefreshTimer) { window.clearInterval(pollRefreshTimer); pollRefreshTimer = null; }
     participantTiles.clear();
+    liveGuestSeatRail = null;
     activePoll = null;
     liveMediaRequestPanel = null;
     pendingGuestMediaRequest = null;
@@ -131,7 +133,10 @@
     var stageGrid = el('div', { class: 'live-stage-grid', 'aria-label': 'LIVE participant stage' });
     liveStageGrid = stageGrid;
     stageGrid.appendChild(el('div', { class: 'live-stage-empty', text: 'Connecting to the LIVE stage…' }));
+    var guestSeatRail = el('div', { class: 'live-guest-seat-rail', role: 'group', 'aria-label': 'LIVE guest seats' });
+    liveGuestSeatRail = guestSeatRail;
     stage.appendChild(stageGrid);
+    stage.appendChild(guestSeatRail);
     stage.appendChild(status);
     video.appendChild(stage);
 
@@ -397,6 +402,7 @@
       roomSubtitle.textContent = currentMediaMode === 'audio' ? 'Voice room · camera is not requested' : currentMediaMode === 'screen' ? 'Screen broadcast · camera and microphone are not required' : 'Camera and microphone broadcast';
       stage.classList.toggle('live-audio-only-stage', currentMediaMode === 'audio');
       stage.classList.toggle('live-screen-only-stage', currentMediaMode === 'screen');
+      stage.classList.toggle('live-guest-seat-layout', currentMediaMode !== 'screen');
       cameraButton.style.display = currentMediaMode === 'video' ? '' : 'none';
       micButton.style.display = currentMediaMode === 'screen' ? 'none' : '';
       flipButton.style.display = currentMediaMode === 'video' ? '' : 'none';
@@ -694,6 +700,8 @@
 
   function ensureParticipantTile(participant, local) {
     var key = participantKey(participant, local);
+    var isRoomHost = (!!roomHostId && key === String(roomHostId)) || (!!local && isHost);
+    var isGuestSeat = !!roomHostId && !isRoomHost && currentMediaMode !== 'screen';
     var tile = participantTiles.get(key);
     if (tile) { tile.participant = participant || tile.participant; return tile; }
     var media = el('div', { class: 'live-participant-media' });
@@ -704,10 +712,10 @@
     var title = el('span', { class: 'live-participant-name', text: String(name).slice(0, 80) });
     var state = el('span', { class: 'live-participant-state', text: local ? 'YOU' : 'CONNECTED' });
     var footer = el('div', { class: 'live-participant-footer' }, [title, state]);
-    var tileElement = el('article', { class: 'live-participant-tile' + (local ? ' is-local' : ''), 'data-participant-id': key });
+    var tileElement = el('article', { class: 'live-participant-tile' + (local ? ' is-local' : '') + (isRoomHost ? ' is-host' : '') + (isGuestSeat ? ' is-guest-seat' : ''), 'data-participant-id': key });
     media.appendChild(el('div', { class: 'live-camera-off', text: currentMediaMode === 'audio' ? '🎙 Voice stage' : currentMediaMode === 'screen' ? 'Screen preview' : (local ? 'Camera starting…' : 'Waiting for media…') }));
     tileElement.appendChild(media); tileElement.appendChild(footer);
-    var tile = { key: key, participant: participant, local: !!local, element: tileElement, media: media, name: title, state: state, audio: [], videoSid: null, audioSid: null, mutedByHost: false };
+    var tile = { key: key, participant: participant, local: !!local, isHost: isRoomHost, isGuestSeat: isGuestSeat, element: tileElement, media: media, name: title, state: state, audio: [], videoSid: null, audioSid: null, mutedByHost: false };
     var spotlight = el('button', { class: 'live-spotlight-toggle', type: 'button', text: 'Spotlight', 'aria-label': 'Spotlight ' + name, onclick: function () { toggleSpotlight(tile, spotlight); } });
     footer.appendChild(spotlight); tile.spotlightButton = spotlight;
     if (!local) {
@@ -729,7 +737,8 @@
     }
     participantTiles.set(key, tile);
     var empty = liveStageGrid && liveStageGrid.querySelector('.live-stage-empty'); if (empty) empty.remove();
-    if (liveStageGrid) liveStageGrid.appendChild(tileElement);
+    if (isGuestSeat && liveGuestSeatRail) liveGuestSeatRail.appendChild(tileElement);
+    else if (liveStageGrid) liveStageGrid.appendChild(tileElement);
     if (!local && !resolvedName && CHL.sb) {
       CHL.sb.from('profiles').select('display_name,username').eq('id', key).maybeSingle().then(function (result) {
         if (!result || result.error || !result.data || !tileElement.isConnected) return;
@@ -769,12 +778,16 @@
     var already = tile.element.classList.contains('is-spotlight');
     participantTiles.forEach(function (other) {
       other.element.classList.remove('is-spotlight');
+      if (other.isGuestSeat && liveGuestSeatRail && other.element.parentElement === liveStageGrid) liveGuestSeatRail.appendChild(other.element);
       if (other.spotlightButton) { other.spotlightButton.textContent = 'Spotlight'; other.spotlightButton.setAttribute('aria-pressed', 'false'); }
     });
     liveStageGrid.classList.toggle('has-spotlight', !already);
     if (!already) {
+      if (tile.isGuestSeat) liveStageGrid.appendChild(tile.element);
       tile.element.classList.add('is-spotlight');
       if (button) { button.textContent = 'Unspotlight'; button.setAttribute('aria-pressed', 'true'); }
+    } else if (tile.isGuestSeat && liveGuestSeatRail) {
+      liveGuestSeatRail.appendChild(tile.element);
     }
   }
 
